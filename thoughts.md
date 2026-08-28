@@ -5,5 +5,6 @@ Our feats are:
 2.5= [DONE] Getting it to come back after reaches window's end
 3= [DONE] Getting it to bounce in the window.
 4= [DONE] Adding another ball.
-5= Collision detection.
-6= Use physics to calculate movement after collision.
+5= [DONE]Collision detection.
+6= [DONE]Use physics to calculate movement after collision.
+7= Do it for balls of diff masses.

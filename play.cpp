@@ -46,6 +46,7 @@ struct Vec2 : public Vector2 {
 // MakeRandom() fills initialises public instances with random values
 // of an acceptable range.
 // CheckCollision() checks if this ball is colliding with any other ball object.
+// Radius is mass of the ball for simplicity.
 class Ball {
 public:
     Vec2 s;
@@ -71,7 +72,7 @@ public:
         float dt = GetFrameTime();
         u += a * dt;
         if(s.x <= radius || s.x >= WINDOW_WIDTH- radius){ u.x*=-1;  a.x*=-1;}
-        if(s.y <= radius || s.y >= WINDOW_WIDTH- radius){ u.y*=-1;  a.y*= -1;}
+        if(s.y <= radius || s.y >= WINDOW_HEIGHT- radius){ u.y*=-1;  a.y*= -1;}
         s += u * dt;
     }
 
@@ -86,16 +87,12 @@ public:
         Vec2 dist_squared_vec2 = (s-b.s)*(s-b.s);
         assert(dist_squared_vec2.x > 0 && dist_squared_vec2.y > 0 && "Absolute distance negative.\n");
         float dist_squared = dist_squared_vec2.x + dist_squared_vec2.y;
-        if(dist_squared <= radius*radius)return true;
+        if(dist_squared <= (radius+b.radius)*(radius+b.radius))return true;
         return false;
     }
 
     void SwapVel(Ball& b){
-        Vec2 temp = u;
-        if(b.u.x != 0)u.x = b.u.x;
-        if(b.u.y != 0)u.y = b.u.y;
-        if(u.x != 0)b.u.x = temp.x;
-        if(u.x != 0)b.u.x = temp.y;
+        std::swap(u, b.u);
     }
 };
 
