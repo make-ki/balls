@@ -1,0 +1,7 @@
+[
+  {
+    "directory": "/home/stark/bounce",
+    "command": "g++ -I/nix/store/9as177237wwsrckdnq2fz6wr4zlrqvgd-raylib-6.0/include -g -O0 -Wall -Wextra play.cpp -o build/play",
+    "file": "/home/stark/bounce/play.cpp"
+  }
+]

@@ -7,4 +7,23 @@ Our feats are:
 4= [DONE] Adding another ball.
 5= [DONE]Collision detection.
 6= [DONE]Use physics to calculate movement after collision.
-7= Do it for balls of diff masses.
+7= [DONE]Do it for balls of diff masses.
+8= [DONE]Fix the physics for tangential collisions.
+ ---FUCKED UP PHYSICS ---
+ What do???
+ -> I don't know why its fucked up, I feel like the functions are fine.
+ TODO = [DONE]refactor functions in Balls (move to Vec2)
+ TODO = [DONE] use those vec2 functions
+ TODO = [DONE] write the mass of each ball on the ball.
+9= Getting a whole lot of errors cuz random balls can spawn on each other.
+
+some fucking how, collided is returning true for everything
+
+
+        float dist = Vec2::mag(n1);
+        float overlap = (radius + b.radius) - dist;  // how deep they're sunk
+        if (overlap > 0) {
+          float total_mass = mass + b.mass;
+          s -= (n1/dist) * overlap * (b.mass / total_mass);   // push lighter ball more
+          b.s += (n2/dist) * overlap * (mass / total_mass);   // (equal mass → half each)
+        }       
