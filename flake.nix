@@ -23,6 +23,7 @@
               gcc           # Compiler (or clang)
               cmake         # Build system
               pkg-config    # Helps compiler find raylib headers/libs automatically
+              perf          # profiler
             ];
 
             # Libraries your project links against

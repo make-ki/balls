@@ -4,9 +4,9 @@
 #include <cmath>
 #include <vector>
 
-#define WINDOW_HEIGHT 800.0
-#define WINDOW_WIDTH 800.0
-#define RANDOM_BALLS 2
+#define WINDOW_HEIGHT 1000.0
+#define WINDOW_WIDTH 1000.0
+#define RANDOM_BALLS 200
 #define MAKEKI "[MAKEKI] "
 #define dbg(x) std::cout << MAKEKI << x << std::endl
 
@@ -70,11 +70,12 @@ struct Vec2 : public Vector2 {
 };
 
 // Ball constructor initialises with pos, radius, vel, acc and color.
-// Move() updates the position & velocity of ball.
 // Draw() draws the ball using DrawCircleV.
-// MakeRandom() fills initialises public instances with random values
+// Move() updates the position & velocity of ball wrt to given dt.
+// FillRandom() fills initialises public instances with random values
 // of an acceptable range.
 // CheckCollision() checks if this ball is colliding with any other ball object.
+// ChangeVel() changes the velocity of both the balls colliding.
 class Ball {
 public:
     Vec2 s;
@@ -99,8 +100,7 @@ public:
         DrawText(TextFormat("%.1f", mass), s.x-5, s.y-5, 12, BLACK);
     }
 
-    void Move() {
-        float dt = GetFrameTime();
+    void Move(float dt) {
         u += a * dt;
         if(s.x <= radius || s.x >= WINDOW_WIDTH- radius){ u.x*=-1;  a.x*=-1;}
         if(s.y <= radius || s.y >= WINDOW_HEIGHT- radius){ u.y*=-1;  a.y*= -1;}
@@ -108,10 +108,11 @@ public:
     }
 
     void FillRandom(){
-        s = Vec2(GetRandomValue(30, 770), GetRandomValue(30, 770));
+        s = Vec2(GetRandomValue(30, WINDOW_WIDTH-30), GetRandomValue(30, WINDOW_HEIGHT-30));
         u = Vec2(GetRandomValue(10, 50));
-        a = Vec2(GetRandomValue(1, 10));
+        //a = Vec2(GetRandomValue(1, 10));
         radius = GetRandomValue(15, 20);
+        mass = GetRandomValue(20,30);
     }
 
     bool CheckCollision(const Ball& b) const{
@@ -126,8 +127,8 @@ public:
         float v1, v2, u1, u2;
         Vec2 i_u = u;
         Vec2 i_bu = b.u;
-        Vec2 n = Vec2::normal(this->s, b.s);
-        n /= Vec2::mag(n);
+        Vec2 i_n = Vec2::normal(this->s, b.s);
+        Vec2 n = i_n/Vec2::mag(i_n);
         u1 = Vec2::udot(this->u, n);
         u2 = Vec2::udot(b.u, n);
         u -= n*u1;
@@ -140,6 +141,8 @@ public:
         v2 = u1*(2*mass/sum_mass_AB) + u2*(-1*del_mass_AB/sum_mass_AB);
         u += n*v1;
         b.u += n*v2;
+
+        
 
         float KE1 = 0.5 * mass * Vec2::mag(i_u) * Vec2::mag(i_u) + 0.5 * b.mass * Vec2::mag(i_bu) * Vec2::mag(i_bu);
         float KE2 = 0.5 * mass * Vec2::mag(u) * Vec2::mag(u) + 0.5 * b.mass * Vec2::mag(b.u) * Vec2::mag(b.u);
@@ -166,13 +169,13 @@ private:
     std::vector<Ball> balls;
     std::vector<Color> colors = { RED, GREEN, BLUE, YELLOW, PURPLE, ORANGE, MAGENTA, LIME };
     int m_n;
-    float total_ke = 0;
+    float cur_ke = 0;
     float begin_ke = 0;
 public:
     Simulator(int n) : m_n(n) {};
 
     void AllCollisions(){
-        total_ke = 0;
+        cur_ke = 0;
         for(int i = 0; i < m_n; i++){
             for(int j = i+1; j < m_n; j++){
                 bool collided = balls[i].CheckCollision(balls[j]);
@@ -182,10 +185,10 @@ public:
                     balls[i].ChangeVel(balls[j]);
                 }
             }
-            total_ke += balls[i].kinEnergy();
+            cur_ke += balls[i].kinEnergy();
         }
-        DrawText(TextFormat("Cur KE: %.1f", total_ke), 20,40, 20, GREEN);
         DrawText(TextFormat("Begin KE: %.1f", begin_ke), 20,60, 20, GREEN);
+        DrawText(TextFormat("Cur KE: %.1f", cur_ke), 20,40, 20, (begin_ke > cur_ke) ? RED: GREEN);
     }
 
     bool isBallColliding(const Ball& b) const{
@@ -198,9 +201,14 @@ public:
     }
 
     void Run(){
-        for(auto& b: balls){
-            b.Move();
-            b.Draw();
+        const int rounds = 16;
+        float sub_dt = GetFrameTime()/ rounds;
+        for(int i = 0; i < rounds; i++){
+            for(auto& b: balls){
+                b.Move(sub_dt);
+                b.Draw();
+            }
+            AllCollisions();
         }
     }
     void GenRand(){
@@ -217,8 +225,8 @@ public:
     }
 
     void MakeCollisionTest(){
-        Ball mak(Vec2(400.0, 50.0), 20.0f, 30.0f, Vec2(0.0f, 100.0f), Vec2(0.0f, 0.0f), RED, 1);
-        Ball kus(Vec2(370.0, 700.0), 20.0f, 30.0f, Vec2(0.0f, 60.0f), Vec2(0.0f, 0.0f), BLUE, 2);
+        Ball mak(Vec2(400.0, 50.0), 20.0f, 30.0f, Vec2(0.0f, 500.0f), Vec2(0.0f, 0.0f), RED, 1);
+        Ball kus(Vec2(400.0, 700.0), 20.0f, 30.0f, Vec2(0.0f, 500.0f), Vec2(0.0f, 0.0f), BLUE, 2);
         begin_ke += mak.kinEnergy();
         begin_ke += kus.kinEnergy();
         balls.push_back(mak);
@@ -230,14 +238,13 @@ int main(){
     const std::string makeki = "[MAKEKI] ";
     InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Balls");
     if(IsWindowReady())std::cout << MAKEKI << "Window is ready\n";
-    SetTargetFPS(100);
+    SetTargetFPS(60);
 
     Simulator world(RANDOM_BALLS);
-    world.MakeCollisionTest();
+    world.GenRand();
     while (!WindowShouldClose()) {
         BeginDrawing();
         DrawText(TextFormat("FPS: %i\n", GetFPS()), 20, 20, 20, GREEN);
-        world.AllCollisions();
         world.Run();
         ClearBackground(BLACK);
         EndDrawing();
