@@ -1,3 +1,5 @@
+“Premature optimization is the root of all evil”- Knuth
+
 15/08/2026
 Our feats are:
 1= [DONE] Getting a particle to show up on the screen. 
@@ -21,20 +23,34 @@ Our feats are:
     - I pass a dt object as function argument to Run, which then passes it to Move()
 [DONE] Substepping fixes the issue visually. Somehow the kinetic energy of the entire system is increasing.
 
-10= Learn how profilers work to see the hotspots and fix the hotspots.
-11= Learn about quadtrees and implement them.
+Things break on 1000x1000 with 600 balls. The physics looks weird af as if brownian motion is happening.
 
+
+SOMETHING IS REALLY MESSED UP, brownian motion is back. 
+Guess is that theres GHOST balls, we are unable to draw them on time.
+
+10= [along] Learn how profilers work to see the hotspots and fix the hotspots.
+10.5 = Look into SPA and implement them.
+11= Learn about quadtrees and implement them.
+    - before quadtrees I can try to split the whole canvas into four zones, and run the collision check only on those zones.
 10= Write the comments. Refactor loop.
+    - [done] make size proportional to mass.
+    - [bug/skip] change color balls they collide
+        - current implementation would not show the intended coloring cuz the loop is hella fast.
+        - can't add delay or costly Time functions.
+        - slowing down don't help.
 11= Look at how to scale this to MANY BALLS
 
-some fucking how, collided is returning true for everything
 
+TIME COMPLEXITY. (n = number of balls)
+All Vec2 functions are O(1).
+All Ball methods are O(1).
+Simulator:
+    - AllCollisions() is O(n^2).
+    - isBallColliding() is O(n).
+    - Run() is O(rounds*n^2).
+    - GenRand() is O(n).
 
-float dist = Vec2::mag(i_n);
-float overlap = (radius + b.radius) - dist;  // how deep they're sunk
-if (overlap > 0) {
-  float total_mass = mass + b.mass;
-  s -= (i_u/dist) * overlap * (b.mass / total_mass);   // push lighter ball more
-  b.s += (i_u/dist) * overlap * (mass / total_mass);   // (equal mass → half each)
-}       
-
+Hotspots:
+- the balls.size() seems to be slowing things down a bit.
+- so is the dist() which i believe is due to sqrt() being costly.

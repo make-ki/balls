@@ -1,12 +1,13 @@
 #include "raylib.h"
 #include <iostream>
+#include <algorithm>
 #include <cassert>
 #include <cmath>
 #include <vector>
 
-#define WINDOW_HEIGHT 1000.0
-#define WINDOW_WIDTH 1000.0
-#define RANDOM_BALLS 200
+#define WINDOW_HEIGHT 1000.0f
+#define WINDOW_WIDTH 1000.0f
+#define RANDOM_BALLS 165
 #define MAKEKI "[MAKEKI] "
 #define dbg(x) std::cout << MAKEKI << x << std::endl
 
@@ -45,11 +46,13 @@ struct Vec2 : public Vector2 {
     // v == v
     bool operator==(const Vec2& b) const {return (x == b.x && y == b.y);}
 
-
-    static float dist(const Vec2& a, const Vec2& b){
+    // v > v
+    bool operator>(const Vec2& b) const {return b.x > x;}
+    
+    static float dist_sq(const Vec2& a, const Vec2& b){
         float X = (a.x-b.x) * (a.x-b.x);
         float Y = (a.y-b.y)* (a.y-b.y);
-        return sqrt(X + Y);
+        return X + Y;
     }
 
     static Vec2 normal(const Vec2& a, const Vec2& b){
@@ -76,6 +79,8 @@ struct Vec2 : public Vector2 {
 // of an acceptable range.
 // CheckCollision() checks if this ball is colliding with any other ball object.
 // ChangeVel() changes the velocity of both the balls colliding.
+// metric() shows the metrics of a ball.
+// kinEnergy() returns the kinectic energy of this ball.
 class Ball {
 public:
     Vec2 s;
@@ -97,28 +102,40 @@ public:
 
     void Draw() const {
         DrawCircleV(s, radius, color);
-        DrawText(TextFormat("%.1f", mass), s.x-5, s.y-5, 12, BLACK);
+        //DrawText(TextFormat("%.1f", mass), s.x-5, s.y-5, 12, BLACK);
     }
 
     void Move(float dt) {
         u += a * dt;
-        if(s.x <= radius || s.x >= WINDOW_WIDTH- radius){ u.x*=-1;  a.x*=-1;}
-        if(s.y <= radius || s.y >= WINDOW_HEIGHT- radius){ u.y*=-1;  a.y*= -1;}
+        if(s.x <= radius){
+            s.x = radius;
+            u.x *= -1; a.x *= -1;
+        }else if(s.x >= WINDOW_WIDTH - radius){
+            s.x = WINDOW_WIDTH - radius;
+            u.x *= -1; a.x *= -1;
+        }
+        if(s.y <= radius){
+            s.y = radius;
+            u.y*= -1; a.y *= -1;
+        }else if(s.y >= WINDOW_HEIGHT - radius){
+            s.y = WINDOW_HEIGHT - radius;
+            u.y*= -1; a.y *= -1;
+        }
         s += u * dt;
     }
 
     void FillRandom(){
-        s = Vec2(GetRandomValue(30, WINDOW_WIDTH-30), GetRandomValue(30, WINDOW_HEIGHT-30));
-        u = Vec2(GetRandomValue(10, 50));
-        //a = Vec2(GetRandomValue(1, 10));
-        radius = GetRandomValue(15, 20);
-        mass = GetRandomValue(20,30);
+        radius = GetRandomValue(7, 15);
+        s = Vec2(GetRandomValue(radius, WINDOW_WIDTH-radius), GetRandomValue(radius, WINDOW_HEIGHT-radius));
+        u = Vec2(GetRandomValue(30, 60));
+        //a = Vec2(GetRandomValue(1, 10)); breaks the KE checks
+        mass = radius;
     }
 
     bool CheckCollision(const Ball& b) const{
-        float dist = Vec2::dist(this->s, b.s);
+        float dist = Vec2::dist_sq(this->s, b.s);
         assert(dist >= 0.0f && "fabsolute distance negative.\n");
-        if(dist <= (radius+b.radius)-0.5)return true;
+        if(dist <= (radius+b.radius)*(radius+b.radius)-0.01)return true;
         return false;
     }
 
@@ -163,12 +180,16 @@ public:
 // Simulator is made to fabstract the entire process, its THE WORLD here.
 // Constructor initialises balls container that has all the balls, and
 // gives them random initial properties.
-// Run() draws and moves every ball in the world.
+// AllCollisions() checks for all collisions that could possibly happen, and changeVel if they do happen.
+// isBallColliding() checks if any ball is colliding with ANY other ball.
+// Run() draws and moves every ball in the world. It runs `rounds` times per frame cycle.
+// GenRand() generates RANDOM_BALLS number of random balls.
+// MakeCollisionTest() is debug method that creates two dummy balls.
 class Simulator{
 private:
     std::vector<Ball> balls;
     std::vector<Color> colors = { RED, GREEN, BLUE, YELLOW, PURPLE, ORANGE, MAGENTA, LIME };
-    int m_n;
+    int m_n = 0;
     float cur_ke = 0;
     float begin_ke = 0;
 public:
@@ -176,13 +197,19 @@ public:
 
     void AllCollisions(){
         cur_ke = 0;
-        for(int i = 0; i < m_n; i++){
+        std::sort(balls.begin(), balls.end(), [](const auto & a, const auto &b){
+                return b.s > a.s;
+        });
+        for(int i= 0; i < m_n; i++){
             for(int j = i+1; j < m_n; j++){
+                if((balls[i].s + balls[i].radius) > (balls[j].s - balls[j].radius))break;
                 bool collided = balls[i].CheckCollision(balls[j]);
                 if(collided){
                     //Ball::metric(balls[i]);
                     //Ball::metric(balls[j]);
                     balls[i].ChangeVel(balls[j]);
+                    // timer functions are costly don't wanna add delay at the heart
+                    // of what i need to optimize
                 }
             }
             cur_ke += balls[i].kinEnergy();
@@ -193,7 +220,9 @@ public:
 
     bool isBallColliding(const Ball& b) const{
         bool collided = false;
-        for(int i = 0; i < balls.size(); i++){
+        // cuz m_n is not equal to the current number of balls in ._.
+        // this part is taking time cuz my ball spawn thingy isn't random enough to avoid collision
+        for(int i = 0; i < (int)balls.size(); i++){
             collided = b.CheckCollision(balls[i]);
             if(collided)break;
         }
@@ -213,11 +242,12 @@ public:
     }
     void GenRand(){
         std::cout << MAKEKI << "Making " << RANDOM_BALLS << " random balls.\n";
+        const int colors_size = colors.size();
         for(int i = 0; i < m_n; i++){
             Ball x;
             x.FillRandom();
             while(isBallColliding(x))x.FillRandom();
-            x.color = colors[i % colors.size()];
+            x.color = colors[i % colors_size];
             x.m_id = i;
             begin_ke += x.kinEnergy();
             balls.push_back(x);
