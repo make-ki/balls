@@ -1,5 +1,7 @@
 “Premature optimization is the root of all evil”- Knuth  
 
+https://www.youtube.com/playlist?list=PLC0Nqg1Z3iVs
+
 15/08/2026  
 Our feats are:  
 1= [DONE] Getting a particle to show up on the screen.   
