@@ -1,5 +1,7 @@
 “Premature optimization is the root of all evil”- Knuth  
 
+<img width="1151" height="1036" alt="image" src="https://github.com/user-attachments/assets/f2fca6d5-db29-41f4-a85b-f713c8ca3cac" />
+
 https://www.youtube.com/playlist?list=PLC0Nqg1Z3iVs
 
 15/08/2026  
